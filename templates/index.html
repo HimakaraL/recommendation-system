@@ -20,10 +20,24 @@
   </head>
   <body>
     <!-- Header -->
+    {% if current_user.is_authenticated %}
     <nav class="navbar navbar-expand-lg navbar-dark bg-dark">
       <a class="navbar-brand" href="#">Anime World</a>
       <div class="navbar-nav ml-auto">
-        <a class="nav-link ml-2" href="/">Home</a>
+        <a
+          class="btn btn-outline-info nav-link ml-2 btn-sm"
+          style="border-radius: 20%; color: white"
+          href="/dashboard"
+          role="button"
+          >Profile</a
+        >
+      </div>
+    </nav>
+
+    {% else %}
+    <nav class="navbar navbar-expand-lg navbar-dark bg-dark">
+      <a class="navbar-brand" href="#">Anime World</a>
+      <div class="navbar-nav ml-auto">
         <a
           class="btn btn-outline-info nav-link ml-2 btn-sm"
           style="border-radius: 20%; color: white"
@@ -40,6 +54,7 @@
         >
       </div>
     </nav>
+    {% endif %}
 
     <!-- Carousel -->
     <div
@@ -147,10 +162,16 @@
     </div>
     <!-- Anime Cards -->
     <div class="container mt-5">
+      <!-- Loop through top_animes and render cards -->
       <div class="row">
-        <!-- Example card, repeat this block for each anime -->
         {% for index, product in top_animes.iterrows() %}
-        <div class="col-md-3 mb-4" id="animeCardTemplate">
+        <!-- Create a new row every 4th card -->
+        {% if index % 4 == 0 and index != 0 %}
+      </div>
+      <div class="row">
+        {% endif %}
+
+        <div class="col-md-3 mb-4">
           <div class="card h-100">
             <img
               class="card-img-top"
@@ -170,10 +191,24 @@
               <p class="card-text">
                 Rating: {{ product['Rating'] }}<span class="rating"></span>
               </p>
-              <a href="#" class="btn btn-primary">Buy Now</a>
+              <form method="POST" action="{{ url_for('buy_item') }}">
+                <input
+                  type="hidden"
+                  name="item"
+                  value="{{ product['Name'] }}"
+                />
+                {% if current_user.is_authenticated %}
+                <button type="submit" class="btn btn-primary">Buy Now</button>
+                {% else %}
+                <a href="{{ url_for('signup') }}" class="btn btn-primary">
+                  Buy Now
+                </a>
+                {% endif %}
+              </form>
             </div>
           </div>
         </div>
+
         {% endfor %}
       </div>
     </div>

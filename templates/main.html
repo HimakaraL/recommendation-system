@@ -44,36 +44,36 @@
     <!-- Search Form -->
     <div class="container mt-5">
       <form
-        action="/recommend"
-        method="post"
-        class="form-inline justify-content-center"
+      action="/recommend"
+      method="post"
+      class="form-inline justify-content-center"
+      style="background-color: #343a40; padding: 20px; border-radius: 10px; box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);"
       >
-        <div class="form-group mb-2">
-          <label for="animeName" class="sr-only">Anime Name</label>
-          <input
-            type="text"
-            class="form-control"
-            id="animeName"
-            name="animeName"
-            placeholder="Anime Name"
-          />
-        </div>
-        <div class="form-group mx-sm-3 mb-2">
-          <label for="numberOfAnime" class="sr-only">Number of Anime</label>
-          <input
-            type="number"
-            class="form-control"
-            id="numberOfAnime"
-            name="animeCount"
-            placeholder="Number of Anime"
-          />
-        </div>
-        <button type="submit" class="btn btn-primary mb-2">Search</button>
+      <div class="form-group mb-2">
+        <label for="animeName" class="sr-only">Anime Name</label>
+        <input
+        type="text"
+        class="form-control"
+        id="animeName"
+        name="animeName"
+        placeholder="Anime Name"
+        style="width: 300px; border-radius: 20px; padding: 10px; border: 1px solid #ced4da;"
+        />
+      </div>
+      <button
+        type="submit"
+        class="btn btn-primary mb-2"
+        style="margin-left: 10px; border-radius: 20px; padding: 10px 20px; background-color: #007bff; border: none; box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);"
+      >
+        Search
+      </button>
       </form>
     </div>
 
     {% if message %}
-        <h1 style="color: white;">{{ message }}</h1>
+    <div style="display: flex; justify-content: center; align-items: center; margin-top: 3%;">
+      <h4 style="color: white;">{{ message }}!</h4>
+    </div>
     {% endif %}
 
     <div class="container mt-5">

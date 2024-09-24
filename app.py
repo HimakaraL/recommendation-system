@@ -1,146 +1,157 @@
-from flask import Flask, request, render_template
-import pandas as pd
+from flask import Flask, request, render_template, session, redirect, url_for, flash
 from flask_sqlalchemy import SQLAlchemy
+from flask_login import LoginManager, UserMixin, login_user, logout_user, login_required, current_user
+from werkzeug.security import generate_password_hash, check_password_hash
 from sklearn.metrics.pairwise import cosine_similarity
 from sklearn.feature_extraction.text import TfidfVectorizer
+import pandas as pd
 
-
-app = Flask(__name__)
-
-#Reading the dataset
+# Reading the dataset
 top_animes = pd.read_csv('./models/top_anime.csv')
 train_data = pd.read_csv('./AnimeDataWithTags.csv')
 
-#Database Configuration
+# Import your database model
+from models import db, User  # Import the db instance and User model
+
+app = Flask(__name__)
+
+# Database Configuration
 app.secret_key = '72fade5da4a96210901796a122f06a9e'
-app.config['SQLALCHEMY_DATABASE_URI'] = 'mysql://root:@localhost/rec_sys'
+app.config['SQLALCHEMY_DATABASE_URI'] = 'mysql://root:@localhost/users'
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
-db = SQLAlchemy(app)
 
-#model class for signup
-class Signup(db.Model):
-    id = db.Column(db.Integer, primary_key=True)
-    name = db.Column(db.String(100), nullable=False)
-    email = db.Column(db.String(100), nullable=False)
-    password = db.Column(db.String(100), nullable=False)
+# Initialize SQLAlchemy with the app context
+db.init_app(app)  # This initializes the db with the app
 
-#model class for login
-class Login(db.Model):
-    id = db.Column(db.Integer, primary_key=True)
-    email = db.Column(db.String(100), nullable=False)
-    password = db.Column(db.String(100), nullable=False)
+# Initialize Flask-Login
+login_manager = LoginManager()
+login_manager.init_app(app)
+login_manager.login_view = 'login'
 
-#Model class for recommendation
-#Function
+@app.context_processor
+def inject_user():
+    return dict(current_user=current_user)
 
-def content_based_recommendations(train_data, item_name, top_n=10):
-    #Checking for the name to exist in the dataset
-    if item_name not in train_data['Name'].values:
-        print(f"Item '{item_name}' not found in the dataset.")
-        return pd.DataFrame()
+@login_manager.user_loader
+def load_user(user_id):
+    return User.query.get(int(user_id))
 
-    #Create a TF_idf vectorizer for descriptions
-    tfidf_vectorizer = TfidfVectorizer(stop_words='english')
-
-    #Apply tf-idf
-    tfidf_matrix_content = tfidf_vectorizer.fit_transform(train_data['Tags'])
-
-    #Calculate cosine similarity
-    cosine_similarities_content = cosine_similarity(tfidf_matrix_content, tfidf_matrix_content)
-
-    #find item index
-    item_index = train_data[train_data['Name'] == item_name].index[0]
-
-    #cosine similarity scores
-    similar_items = list(enumerate(cosine_similarities_content[item_index]))
-
-    #Sort similar items by desc order
-    similar_items = sorted(similar_items, key=lambda x: x[1], reverse=True)
-
-    #Get the most similar items except item itself
-    top_similar_items = similar_items[1:top_n+1]
-
-    #Get the indices of top similar items
-    recommended_item_indices = [x[0] for x in top_similar_items]
-
-    #Get the details
-    recommended_item_details = train_data.iloc[recommended_item_indices][['Name', 'EpisodeCount', 'Genre', 'ImageURL']]
-
-    return recommended_item_details
-
-
-#Routes
 @app.route('/')
 def index():
     top_animes = pd.read_csv('./models/top_anime.csv')
-
     top_animes = top_animes[['Name', 'EpisodeCount', 'Genre', 'ImageURL', 'Rating']].sample(8)
-
     anime_images = top_animes['ImageURL'].tolist()
     
     return render_template('index.html', top_animes=top_animes, anime_images=anime_images)
 
-@app.route('/main')
-def main():
-    return render_template('main.html')
+@app.route('/signup', methods=['GET', 'POST'])
+def signup():
+    if request.method == 'POST':
+        name = request.form.get('name')
+        email = request.form.get('email')
+        password = request.form.get('password')  # Store the raw password directly
+        
+        new_user = User(name=name, email=email, password=password)  # No hashing here
+        db.session.add(new_user)
+        db.session.commit()
+        
+        flash('Account created successfully!', 'success')
+        return redirect(url_for('login'))
+    
+    return render_template('signup.html')
 
 @app.route('/login', methods=['GET', 'POST'])
 def login():
     if request.method == 'POST':
-        email = request.form['loginMail']
-        password = request.form['loginPw']
-
-        login_new = Login(email=email,password=password)
-        db.session.add(login_new)
-        db.session.commit()
-
-        # Fetching top animes after signup
-        top_animes = pd.read_csv('./models/top_anime.csv')
-        top_animes = top_animes[['Name', 'EpisodeCount', 'Genre', 'ImageURL', 'Rating']].sample(8)
-        anime_images = top_animes['ImageURL'].tolist()
-
-        return render_template('index.html', top_animes=top_animes, anime_images=anime_images, message='Login Successful')
-
+        email = request.form.get('email')
+        password = request.form.get('password')
+        user = User.query.filter_by(email=email).first()
+        
+        if user and user.password == password:  # Direct comparison without hashing
+            login_user(user)
+            flash('Logged in successfully!', 'success')
+            return redirect(url_for('dashboard'))
+        else:
+            flash('Login failed. Check your email and password', 'danger')
+    
     return render_template('login.html')
 
-@app.route('/signup', methods=['GET', 'POST'])
-def signup():
-    if request.method == 'POST':
-        name = request.form['name']
-        email = request.form['email']
-        password = request.form['password']
 
-        signup = Signup(name=name, email=email, password=password)
-        db.session.add(signup)
-        db.session.commit()
+@app.route('/logout')
+@login_required
+def logout():
+    logout_user()
+    flash('Logged out successfully!', 'success')
+    return redirect(url_for('index'))  
 
-        # Fetching top animes after signup
-        top_animes = pd.read_csv('./models/top_anime.csv')
-        top_animes = top_animes[['Name', 'EpisodeCount', 'Genre', 'ImageURL', 'Rating']].sample(8)
-        anime_images = top_animes['ImageURL'].tolist()
+@app.route('/dashboard')
+@login_required
+def dashboard():
+    return render_template('dashboard.html', user=current_user)
 
-        return render_template('index.html', top_animes=top_animes, anime_images=anime_images, message='Signup Successful')
+@app.route('/buy_item', methods=['POST'])
+@login_required
+def buy_item():
+    item = request.form.get('item')
+    if current_user.bought_items:
+        current_user.bought_items += f',{item}'
+    else:
+        current_user.bought_items = item
+    
+    db.session.commit()
+    flash(f'Bought item: {item}', 'success')
+    return redirect(url_for('dashboard'))
 
-    # For GET request, render the signup form
-    return render_template('signup.html')
+# Content-based recommendation system
+def content_based_recommendations(train_data, item_name, top_n):
+    # Checking if the item exists in the dataset
+    if item_name not in train_data['Name'].values:
+        return pd.DataFrame()
+
+    # Create a TF-IDF vectorizer for the 'Tags' column
+    tfidf_vectorizer = TfidfVectorizer(stop_words='english')
+    tfidf_matrix_content = tfidf_vectorizer.fit_transform(train_data['Tags'])
+
+    # Calculate cosine similarity
+    cosine_similarities_content = cosine_similarity(tfidf_matrix_content, tfidf_matrix_content)
+
+    # Find item index
+    item_index = train_data[train_data['Name'] == item_name].index[0]
+
+    # Get cosine similarity scores
+    similar_items = list(enumerate(cosine_similarities_content[item_index]))
+
+    # Sort items by similarity score
+    similar_items = sorted(similar_items, key=lambda x: x[1], reverse=True)
+
+    # Get top N most similar items (excluding the item itself)
+    top_similar_items = similar_items[1:top_n+1]
+    recommended_item_indices = [x[0] for x in top_similar_items]
+
+    # Fetch details of recommended items
+    recommended_item_details = train_data.iloc[recommended_item_indices][['Name', 'EpisodeCount', 'Genre', 'ImageURL']]
+
+    return recommended_item_details
+
+# Routes
+@app.route('/main')
+def main():
+    return render_template('main.html')
 
 @app.route('/recommend', methods=['GET', 'POST'])
 def recommend():
     if request.method == 'POST':
         anime_name = request.form['animeName']
-        anime_count = request.form['animeCount']
-        content_based_rec = content_based_recommendations(train_data, anime_name, int(anime_count))
+        anime_count = 4
+        content_based_rec = content_based_recommendations(train_data, anime_name, anime_count)
 
         if content_based_rec.empty:
             return render_template('main.html', message='Anime not found in the dataset')
         else:
             recommend_animes = content_based_rec.to_dict(orient='records')
-            return render_template('main .html', recommend_animes=recommend_animes)
-
-
-    return render_template('recommend.html')
-
-
+            return render_template('main.html', recommend_animes=recommend_animes)
 
 if __name__ == '__main__':
+    with app.app_context():  # Create an application context
+        db.create_all()  # Create tables if they don't exist
     app.run(debug=True)
