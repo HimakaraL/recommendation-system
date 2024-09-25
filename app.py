@@ -5,9 +5,10 @@ from werkzeug.security import generate_password_hash, check_password_hash
 from sklearn.metrics.pairwise import cosine_similarity
 from sklearn.feature_extraction.text import TfidfVectorizer
 import pandas as pd
+from datetime import datetime
 
 # Reading the dataset
-top_animes = pd.read_csv('./models/top_anime.csv')
+top_animes = pd.read_csv('./top_animeNew.csv')
 train_data = pd.read_csv('./AnimeDataWithTags.csv')
 
 # Import your database model
@@ -41,8 +42,28 @@ def index():
     top_animes = pd.read_csv('./models/top_anime.csv')
     top_animes = top_animes[['Name', 'EpisodeCount', 'Genre', 'ImageURL', 'Rating']].sample(8)
     anime_images = top_animes['ImageURL'].tolist()
+
+    random_animes = train_data[['Name', 'EpisodeCount', 'Genre', 'ImageURL', 'Rating']].sample(10)
+
+    # Get the current time
+    current_time = int(datetime.now().strftime('%H'))
+
+    if 0 <= current_time < 6:
+        tod = pd.read_csv('./TOD3.csv')
+    elif 6 <= current_time < 12: 
+        tod = pd.read_csv('./TOD1.csv')
+    elif 12 <= current_time < 18:
+        tod = pd.read_csv('./TOD2.csv')
+    else:
+        tod = pd.read_csv('./TOD4.csv')
+
+    print(tod.head(5))
+
+    tod = tod[['Name', 'EpisodeCount', 'Genre', 'ImageURL', 'Rating']].to_dict(orient='records')
+
+   
     
-    return render_template('index.html', top_animes=top_animes, anime_images=anime_images)
+    return render_template('index.html', top_animes=top_animes, anime_images=anime_images, random_animes=random_animes, tod=tod)
 
 @app.route('/signup', methods=['GET', 'POST'])
 def signup():
