@@ -1,4 +1,4 @@
-,UserID,AnimeID,Name,Genre,Type,EpisodeCount,Rating,ImageURL,time_of_day,purchase_history,Tags
+UserID,AnimeID,Name,Genre,Type,EpisodeCount,Rating,ImageURL,time_of_day,purchase_history,Tags
 0,10,32803,Dreaming Pupa: Yumemiru Bokura,Music,Music,1,5.2,https://haruhichan.com/wp-content/uploads/Persona-4-The-Golden-Animation-Visual-02.jpg,Morning,3,"music, pupa, yumemiru, dreaming, bokura"
 1,214,3358,Kure-nai,Comedy Drama Martial Arts,TV,12,7.52,https://cdn.statically.io/img/nimegami.id/f=auto/wp-content/uploads/2020/07/Doraemon-Movie-12-Nobita-no-Dorabian-Nights-min.jpg,Evening,5,"comedy, tv, drama, martial, arts"
 2,477,31139,Ame-iro Cocoa: Rainy Color e Youkoso!,Comedy Slice of Life,TV,12,4.92,https://store.donanimhaber.com/36/59/7b/36597b1083fef7b78b16174e6290fb5d.jpg,Evening,0,"life, cocoa, comedy, tv, e, youkoso, color, slice, rainy"

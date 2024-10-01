@@ -61,16 +61,105 @@
     <div style="margin-top: 2%">
       <h1>Welcome, {{ user.name }}!</h1>
       <br /><br />
-      <div style="margin-left: 3%;">
+      <div style="margin-left: 3%">
         <h3>Your Bought Products:</h3>
-        <ul style="margin-left: 3%">
-          {% if user.bought_items %} {% for item in user.bought_items.split(',')
-          %}
-          <li>{{ item }}</li>
-          {% endfor %} {% else %}
-          <li>No items bought yet.</li>
-          {% endif %}
-        </ul>
+
+        <div class="container mt-5">
+          <div class="row">
+            <!-- Loop through the records in 'tod' and render each as a card -->
+            {% for product in bought_items_details %}
+            <!-- Create a new row every 4th card -->
+            {% if loop.index % 4 == 1 and loop.index > 1 %}
+          </div>
+          <div class="row">
+            {% endif %}
+
+            <div class="col-md-3 mb-4">
+              <div class="card h-100">
+                <img
+                  class="card-img-top"
+                  src="{{ product['ImageURL'] }}"
+                  alt="Anime Image"
+                  style="height: 223px"
+                />
+                <div class="card-body bg-dark text-white text-center">
+                  <h5 class="card-title">{{ product['Name'] }}</h5>
+                  <p class="card-text">
+                    Episodes: {{ product['EpisodeCount'] }}<span
+                      class="episode-count"
+                    ></span>
+                  </p>
+                  <p class="card-text">
+                    {{ product['Genre'] }}<span class="genre"></span>
+                  </p>
+                  <p class="card-text">
+                    Rating: {{ product['Rating'] }}<span class="rating"></span>
+                  </p>
+                </div>
+              </div>
+            </div>
+            {% endfor %}
+          </div>
+        </div>
+      </div>
+
+      <br/>
+      <div style="margin-left: 3%">
+        <h3>Suggested For You!</h3>
+
+        <div class="container mt-5">
+          <div class="row">
+            <!-- Loop through the records in 'tod' and render each as a card -->
+            {% for product in collaborative_animes %}
+            <!-- Create a new row every 4th card -->
+            {% if loop.index % 4 == 1 and loop.index > 1 %}
+          </div>
+          <div class="row">
+            {% endif %}
+
+            <div class="col-md-3 mb-4">
+              <div class="card h-100">
+                <img
+                  class="card-img-top"
+                  src="{{ product['ImageURL'] }}"
+                  alt="Anime Image"
+                  style="height: 223px"
+                />
+                <div class="card-body bg-dark text-white text-center">
+                  <h5 class="card-title">{{ product['Name'] }}</h5>
+                  <p class="card-text">
+                    Episodes: {{ product['EpisodeCount'] }}<span
+                      class="episode-count"
+                    ></span>
+                  </p>
+                  <p class="card-text">
+                    {{ product['Genre'] }}<span class="genre"></span>
+                  </p>
+                  <p class="card-text">
+                    Rating: {{ product['Rating'] }}<span class="rating"></span>
+                  </p>
+                  <form method="POST" action="{{ url_for('buy_item') }}">
+                    <input
+                      type="hidden"
+                      name="item"
+                      value="{{ product['Name'] }}"
+                    />
+                    {% if current_user.is_authenticated %}
+                    <button type="submit" class="btn btn-primary">
+                      Buy Now
+                    </button>
+                    {% else %}
+                    <a href="{{ url_for('signup') }}" class="btn btn-primary"
+                      >Buy Now</a
+                    >
+                    {% endif %}
+                  </form>
+                </div>
+              </div>
+            </div>
+            {% endfor %}
+          </div>
+        </div>
       </div>
     </div>
   </body>
