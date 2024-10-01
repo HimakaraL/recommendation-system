@@ -185,18 +185,21 @@ def logout():
 @app.route('/dashboard')
 @login_required
 def dashboard():
-    bought_items = bought_items_details(train_data, current_user.bought_items)
+    if current_user.bought_items:
+        bought_items = bought_items_details(train_data, current_user.bought_items)
 
-    user_bought_items = current_user.bought_items
-    bought_items_for_collaborative = user_bought_items.split(',')
-    bought_items_indices = train_data[train_data['Name'].isin(bought_items_for_collaborative)].index
+        user_bought_items = current_user.bought_items
+        bought_items_for_collaborative = user_bought_items.split(',')
+        bought_items_indices = train_data[train_data['Name'].isin(bought_items_for_collaborative)].index
 
-    relavant_anime = train_data.loc[bought_items_indices].sample(1)  # Now sampling from DataFrame, not Index
-    user_id_for_collaborative = relavant_anime['UserID'].values[0] 
+        relavant_anime = train_data.loc[bought_items_indices].sample(1)  # Now sampling from DataFrame, not Index
+        user_id_for_collaborative = relavant_anime['UserID'].values[0] 
 
-    collaborative_recommendations = collborative_filtering_recommendations(train_data, user_id_for_collaborative)
+        collaborative_recommendations = collborative_filtering_recommendations(train_data, user_id_for_collaborative)
 
-    return render_template('dashboard.html', user=current_user, bought_items_details=bought_items, collaborative_animes=collaborative_recommendations)
+        return render_template('dashboard.html', user=current_user, bought_items_details=bought_items, collaborative_animes=collaborative_recommendations)
+    else:
+        return render_template('dashboard.html', user=current_user)
 
 @app.route('/buy_item', methods=['POST'])
 @login_required
