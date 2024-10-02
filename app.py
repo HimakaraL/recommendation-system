@@ -105,6 +105,18 @@ def collborative_filtering_recommendations(train_data, target_user_id, top_n=10)
 
     return recommended_items_details
     
+def precision_at_k(recommended_items, relevant_items, k):
+    recommended_at_k = recommended_items[:k]
+    relevant_at_k = set(recommended_at_k) & set(relevant_items)
+    precision = len(relevant_at_k) / k
+    return precision
+
+def recall_at_k(recommended_items, relevant_items, k):
+    recommended_at_k = recommended_items[:k]
+    relevant_at_k = set(recommended_at_k) & set(relevant_items)
+    recall = len(relevant_at_k) / len(relevant_items)
+    return recall
+
 
 @app.context_processor
 def inject_user():
@@ -126,19 +138,16 @@ def index():
     current_time = int(datetime.now().strftime('%H'))
 
     if 0 <= current_time < 6:
-        tod = pd.read_csv('./TOD3.csv')
+        tod = pd.read_csv('./models/TOD2.csv')
     elif 6 <= current_time < 12: 
-        tod = pd.read_csv('./TOD1.csv')
+        tod = pd.read_csv('./models/TOD0.csv')
     elif 12 <= current_time < 18:
-        tod = pd.read_csv('./TOD2.csv')
-    else:
-        tod = pd.read_csv('./TOD4.csv')
-
-    print(tod.head(5))
+        print('time came here')
+        tod = pd.read_csv('./models/TOD1.csv')
+    elif 18 <= current_time < 24:
+        tod = pd.read_csv('./models/TOD3.csv')
 
     tod = tod[['Name', 'EpisodeCount', 'Genre', 'ImageURL', 'Rating']].to_dict(orient='records')
-
-   
     
     return render_template('index.html', top_animes=top_animes, anime_images=anime_images, random_animes=random_animes, tod=tod)
 
