@@ -106,7 +106,13 @@
             </div>
             {% endfor %}
         </div>
+        <div style="display: flex; justify-content: center; align-items: center; flex-direction: column;">
+          {% if evaluation %}
+            <h3 style="color: white;">Evaluation Results:</h3>
+            <p style="color: white;">Precision: {{ evaluation.precision | round(2) }}</p>
+            <p style="color: white;">Recall: {{ evaluation.recall | round(2) }}</p>
+          {% endif %}
+        </div>
     </div>
-    
   </body>
 </html>

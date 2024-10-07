@@ -30,32 +30,29 @@ login_manager.init_app(app)
 login_manager.login_view = 'login'
 
 # Content-based recommendation system
-def content_based_recommendations(train_data, item_name, top_n):
-    # Checking if the item exists in the dataset
-    if item_name not in train_data['Name'].values:
-        return pd.DataFrame()
+def content_based_recommendations(train_data, user_input, top_n):
+    # Create a TF-IDF vectorizer
+    vectorizer = TfidfVectorizer(stop_words='english')
 
-    # Create a TF-IDF vectorizer for the 'Tags' column
-    tfidf_vectorizer = TfidfVectorizer(stop_words='english')
-    tfidf_matrix_content = tfidf_vectorizer.fit_transform(train_data['Tags'])
+    # Fit the vectorizer on the 'Tags' column from the dataset
+    tfidf_matrix_content = vectorizer.fit_transform(train_data['Tags'])
 
-    # Calculate cosine similarity
-    cosine_similarities_content = cosine_similarity(tfidf_matrix_content, tfidf_matrix_content)
+    # Transform the user input (query) into a TF-IDF vector
+    user_input_tfidf = vectorizer.transform([user_input])
 
-    # Find item index
-    item_index = train_data[train_data['Name'] == item_name].index[0]
+    # Calculate cosine similarity between the user's input and all items in the dataset
+    cosine_similarities_content = cosine_similarity(user_input_tfidf, tfidf_matrix_content).flatten()
 
-    # Get cosine similarity scores
-    similar_items = list(enumerate(cosine_similarities_content[item_index]))
+    # Sort items by similarity score in descending order
+    similar_items = sorted(list(enumerate(cosine_similarities_content)), key=lambda x: x[1], reverse=True)
 
-    # Sort items by similarity score
-    similar_items = sorted(similar_items, key=lambda x: x[1], reverse=True)
+    # Get top N most similar items
+    top_similar_items = similar_items[:top_n]
 
-    # Get top N most similar items (excluding the item itself)
-    top_similar_items = similar_items[1:top_n+1]
+    # Get the indices of recommended items
     recommended_item_indices = [x[0] for x in top_similar_items]
 
-    # Fetch details of recommended items
+    # Fetch details of the recommended items
     recommended_item_details = train_data.iloc[recommended_item_indices][['Name', 'EpisodeCount', 'Genre', 'ImageURL']]
 
     return recommended_item_details
@@ -104,18 +101,58 @@ def collborative_filtering_recommendations(train_data, target_user_id, top_n=10)
     recommended_items_details = recommended_items_details.to_dict('records')
 
     return recommended_items_details
-    
-def precision_at_k(recommended_items, relevant_items, k):
-    recommended_at_k = recommended_items[:k]
-    relevant_at_k = set(recommended_at_k) & set(relevant_items)
-    precision = len(relevant_at_k) / k
-    return precision
 
-def recall_at_k(recommended_items, relevant_items, k):
-    recommended_at_k = recommended_items[:k]
-    relevant_at_k = set(recommended_at_k) & set(relevant_items)
-    recall = len(relevant_at_k) / len(relevant_items)
-    return recall
+def get_tags_for_partial_anime(train_data, user_input):
+    # Find rows where the anime name contains the user input
+    anime_rows = train_data[train_data['Name'].str.contains(user_input, case=False, na=False)]
+    if not anime_rows.empty:
+        # Return a list of tags for matched anime
+        return anime_rows[['Name', 'Tags']].to_dict(orient='records')  # List of dicts with Name and Tags
+    return []
+
+def evaluate_recommendations(user_input, recommended_items, train_data):
+    """
+    Evaluate the recommendations based on tag matching.
+
+    :param user_input: The anime name entered by the user (partial name).
+    :param recommended_items: The list of recommended items.
+    :param train_data: The entire dataset to fetch tags.
+    :return: A dictionary with precision and recall scores.
+    """
+    # Get all anime that match the partial user input
+    matching_animes = get_tags_for_partial_anime(train_data, user_input)
+
+    if not matching_animes:
+        return {'precision': 0, 'recall': 0}  # No matches found
+
+    # Create a set of relevant tags based on matching animes
+    relevant_tags = set()
+    for anime in matching_animes:
+        relevant_tags.update(anime['Tags'].split(','))  # Add tags for each matching anime
+
+    # Set to track true positives
+    true_positives = 0
+
+    # Check recommended items against relevant tags
+    for item in recommended_items:
+        item_tags = get_tags_for_partial_anime(train_data, item['Name'])
+        if item_tags:
+            for it in item_tags:
+                item_tag_set = set(it['Tags'].split(','))
+                if not relevant_tags.isdisjoint(item_tag_set):  # Check for any common tags
+                    true_positives += 1
+                    break  # Only count once for each recommended item
+
+    # Precision: TP / (TP + FP)
+    precision = true_positives / len(recommended_items) if recommended_items else 0
+
+    # Recall: TP / (Relevant items)
+    recall = true_positives / len(relevant_tags) if relevant_tags else 0
+
+    return {
+        'precision': precision,
+        'recall': recall
+    }
 
 
 @app.context_processor
@@ -239,7 +276,12 @@ def recommend():
             return render_template('main.html', message='Anime not found!')
         else:
             recommend_animes = content_based_rec.to_dict(orient='records')
-            return render_template('main.html', recommend_animes=recommend_animes)
+
+            # Evaluate recommendations based on tags
+            evaluation_results = evaluate_recommendations(anime_name, recommend_animes, train_data)
+
+            # Render the recommendations and evaluation results
+            return render_template('main.html', recommend_animes=recommend_animes, evaluation=evaluation_results)
 
 if __name__ == '__main__':
     with app.app_context():  # Create an application context
