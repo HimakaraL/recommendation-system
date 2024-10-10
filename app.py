@@ -1,7 +1,5 @@
-from flask import Flask, request, render_template, session, redirect, url_for, flash
-from flask_sqlalchemy import SQLAlchemy
-from flask_login import LoginManager, UserMixin, login_user, logout_user, login_required, current_user
-from werkzeug.security import generate_password_hash, check_password_hash
+from flask import Flask, request, render_template, redirect, url_for, flash
+from flask_login import LoginManager, login_user, logout_user, login_required, current_user
 from sklearn.metrics.pairwise import cosine_similarity
 from sklearn.feature_extraction.text import TfidfVectorizer
 import pandas as pd
@@ -111,14 +109,7 @@ def get_tags_for_partial_anime(train_data, user_input):
     return []
 
 def evaluate_recommendations(user_input, recommended_items, train_data):
-    """
-    Evaluate the recommendations based on tag matching.
 
-    :param user_input: The anime name entered by the user (partial name).
-    :param recommended_items: The list of recommended items.
-    :param train_data: The entire dataset to fetch tags.
-    :return: A dictionary with precision and recall scores.
-    """
     # Get all anime that match the partial user input
     matching_animes = get_tags_for_partial_anime(train_data, user_input)
 
@@ -176,17 +167,21 @@ def index():
 
     if 0 <= current_time < 6:
         tod = pd.read_csv('./models/TOD2.csv')
+        time_of_day = 'Midnight'
     elif 6 <= current_time < 12: 
         tod = pd.read_csv('./models/TOD0.csv')
+        time_of_day = 'Morning'
     elif 12 <= current_time < 18:
         print('time came here')
         tod = pd.read_csv('./models/TOD1.csv')
+        time_of_day = 'Afternoon'
     elif 18 <= current_time < 24:
         tod = pd.read_csv('./models/TOD3.csv')
+        time_of_day = 'Night'
 
     tod = tod[['Name', 'EpisodeCount', 'Genre', 'ImageURL', 'Rating']].to_dict(orient='records')
     
-    return render_template('index.html', top_animes=top_animes, anime_images=anime_images, random_animes=random_animes, tod=tod)
+    return render_template('index.html', top_animes=top_animes, anime_images=anime_images, random_animes=random_animes, tod=tod, time_of_day=time_of_day)
 
 @app.route('/signup', methods=['GET', 'POST'])
 def signup():
